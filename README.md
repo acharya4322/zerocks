@@ -141,3 +141,4 @@ flutter run -d windows
 - **No local caching**: Customer app never downloads files locally
 - **No download button**: Shop app preview has no save/export option
 # zerocks
+# zerocks
