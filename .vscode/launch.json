@@ -1,0 +1,55 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        
+        {
+            "name": "zerocks_common",
+            "cwd": "zerocks_common",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "zerocks_customer",
+            "cwd": "zerocks_customer",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "zerocks_customer (profile mode)",
+            "cwd": "zerocks_customer",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "zerocks_customer (release mode)",
+            "cwd": "zerocks_customer",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "zerocks_shop",
+            "cwd": "zerocks_shop",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "zerocks_shop (profile mode)",
+            "cwd": "zerocks_shop",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        },
+        {
+            "name": "zerocks_shop (release mode)",
+            "cwd": "zerocks_shop",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        }
+    ]
+}

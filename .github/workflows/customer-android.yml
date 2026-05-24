@@ -1,0 +1,72 @@
+name: Build Customer APK
+
+on:
+  push:
+    branches: [main]
+    paths: ['zerocks_customer/**', 'zerocks_common/**']
+  pull_request:
+    branches: [main]
+    paths: ['zerocks_customer/**', 'zerocks_common/**']
+
+jobs:
+  analyze-and-test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies (common)
+        working-directory: zerocks_common
+        run: dart pub get
+
+      - name: Install dependencies (customer)
+        working-directory: zerocks_customer
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: zerocks_customer
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run tests
+        working-directory: zerocks_customer
+        run: flutter test
+
+  build:
+    name: Build Release APK
+    needs: analyze-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        working-directory: zerocks_customer
+        run: flutter pub get
+
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > zerocks_customer/android/app/keystore.jks
+
+      - name: Build APK
+        working-directory: zerocks_customer
+        run: |
+          flutter build apk --release \
+            --dart-define=ENV=production
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-apk-${{ github.sha }}
+          path: zerocks_customer/build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30

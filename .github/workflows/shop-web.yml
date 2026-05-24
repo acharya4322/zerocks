@@ -1,0 +1,44 @@
+name: Deploy Shop Dashboard
+
+on:
+  push:
+    branches: [main]
+    paths: ['zerocks_shop/**', 'zerocks_common/**']
+
+jobs:
+  deploy:
+    name: Build & Deploy to Firebase Hosting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies (common)
+        working-directory: zerocks_common
+        run: dart pub get
+
+      - name: Install dependencies (shop)
+        working-directory: zerocks_shop
+        run: flutter pub get
+
+      - name: Analyze
+        working-directory: zerocks_shop
+        run: flutter analyze --no-fatal-infos
+
+      - name: Build web
+        working-directory: zerocks_shop
+        run: flutter build web --release --web-renderer canvaskit
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: ${{ secrets.FIREBASE_PROJECT_ID }}
+          entryPoint: zerocks_shop

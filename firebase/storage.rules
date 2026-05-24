@@ -1,0 +1,25 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Print job files: stored under printJobs/{jobId}/{fileName}
+    match /printJobs/{jobId}/{fileName} {
+      // Upload: authenticated users, 10MB limit, PDF/image only
+      allow write: if request.auth != null
+                   && request.resource.size < 10 * 1024 * 1024
+                   && (request.resource.contentType.matches('application/pdf')
+                       || request.resource.contentType.matches('image/.*'));
+
+      // Read: authenticated users (URL security via signed URLs in production)
+      allow read: if request.auth != null;
+
+      // Delete: authenticated users (Cloud Functions handle primary cleanup)
+      allow delete: if request.auth != null;
+    }
+
+    // Deny everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

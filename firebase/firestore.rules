@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Users ──────────────────────────────────────────
+    // Users can only read/write their own profile
+    // Admins can read any user
+    match /users/{userId} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == userId
+                      || request.auth.token.role in ['admin', 'superadmin']);
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId;
+      allow delete: if false;
+    }
+
+    // ── Shop Owners ──────────────────────────────────────
+    match /shopOwners/{ownerId} {
+      allow read: if request.auth != null
+                  && (request.auth.uid == ownerId
+                      || request.auth.token.role in ['admin', 'superadmin']);
+      allow create: if request.auth.token.role in ['admin', 'superadmin'];
+      allow update: if request.auth != null
+                    && (request.auth.uid == ownerId
+                        || request.auth.token.role in ['admin', 'superadmin']);
+      allow delete: if request.auth.token.role == 'superadmin';
+    }
+
+    // ── Shops ──────────────────────────────────────────
+    // Any authenticated user can read shops (for discovery)
+    // Only the shop owner or admins can update
+    match /shops/{shopId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null
+                    && (request.auth.token.role in ['admin', 'superadmin']
+                        || request.resource.data.ownerId == request.auth.uid);
+      allow update: if request.auth != null
+                    && (resource.data.ownerId == request.auth.uid
+                        || request.auth.token.role in ['admin', 'superadmin']);
+      allow delete: if request.auth.token.role == 'superadmin';
+    }
+
+    // ── Print Jobs ─────────────────────────────────────
+    // Customer can create jobs (must set their own userId)
+    // Customer or shop owner can read/update their own jobs
+    // Admins can read/update any job
+    match /printJobs/{jobId} {
+      allow create: if request.auth != null
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.status == 'uploaded'
+                    && request.resource.data.copies > 0
+                    && request.resource.data.copies <= 100;
+
+      allow read: if request.auth != null
+                  && (resource.data.userId == request.auth.uid
+                      || isShopOwner(resource.data.shopId)
+                      || request.auth.token.role in ['admin', 'superadmin']);
+
+      allow update: if request.auth != null
+                    && (resource.data.userId == request.auth.uid
+                        || isShopOwner(resource.data.shopId)
+                        || request.auth.token.role in ['admin', 'superadmin']);
+
+      // No client-side deletes — handled by Cloud Functions
+      allow delete: if false;
+    }
+
+    // ── Admin ──────────────────────────────────────────
+    match /admin/{adminId} {
+      allow read, write: if request.auth != null
+                         && request.auth.token.role in ['admin', 'superadmin'];
+    }
+
+    // ── Platform Config/Stats ──────────────────────────
+    match /platform/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.auth.token.role == 'superadmin';
+    }
+
+    // Helper: check if current user owns the given shop
+    function isShopOwner(shopId) {
+      return get(/databases/$(database)/documents/shops/$(shopId)).data.ownerId == request.auth.uid;
+    }
+  }
+}
