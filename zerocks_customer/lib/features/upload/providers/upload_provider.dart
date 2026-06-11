@@ -1,13 +1,16 @@
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:zerocks_common/zerocks_common.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../providers/app_providers.dart';
+import '../services/document_analysis_service.dart';
+import '../../scanner/services/document_scanner_service.dart';
 
 // ── Upload State ──────────────────────────────────────────
 
-enum UploadStatus { idle, picking, uploading, success, error }
+enum UploadStatus { idle, picking, analyzing, uploading, success, error }
 
 class UploadState {
   final UploadStatus status;
@@ -15,6 +18,7 @@ class UploadState {
   final String? fileName;
   final int? fileSizeBytes;
   final String? fileType;
+  final DocumentAnalysisModel? analysis;
   final int copies;
   final bool isColor;
   final bool isDuplex;
@@ -29,6 +33,7 @@ class UploadState {
     this.fileName,
     this.fileSizeBytes,
     this.fileType,
+    this.analysis,
     this.copies = 1,
     this.isColor = false,
     this.isDuplex = false,
@@ -44,6 +49,7 @@ class UploadState {
     String? fileName,
     int? fileSizeBytes,
     String? fileType,
+    DocumentAnalysisModel? analysis,
     int? copies,
     bool? isColor,
     bool? isDuplex,
@@ -58,6 +64,7 @@ class UploadState {
       fileName: fileName ?? this.fileName,
       fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
       fileType: fileType ?? this.fileType,
+      analysis: analysis ?? this.analysis,
       copies: copies ?? this.copies,
       isColor: isColor ?? this.isColor,
       isDuplex: isDuplex ?? this.isDuplex,
@@ -80,6 +87,7 @@ class UploadNotifier extends Notifier<UploadState> {
   late StorageService _storageService;
   late FirestoreService _firestoreService;
   late String _userId;
+  final DocumentAnalysisService _analysisService = DocumentAnalysisService();
 
   @override
   UploadState build() {
@@ -127,16 +135,84 @@ class UploadNotifier extends Notifier<UploadState> {
       final fileType = FileValidator.getFileType(file.name);
 
       state = state.copyWith(
-        status: UploadStatus.idle,
+        status: UploadStatus.analyzing,
         filePath: file.path,
         fileName: file.name,
         fileSizeBytes: file.size,
         fileType: fileType,
       );
+
+      await _analyzeFile(file.path!, isScanned: false);
     } catch (e) {
       state = state.copyWith(
         status: UploadStatus.error,
         errorMessage: 'Failed to pick file: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<void> scanDocument() async {
+    state = state.copyWith(status: UploadStatus.picking);
+
+    try {
+      final scannerService = ref.read(documentScannerServiceProvider);
+      final imagePaths = await scannerService.scanDocuments();
+
+      if (imagePaths.isEmpty) {
+        // User cancelled or no images scanned
+        state = state.copyWith(status: UploadStatus.idle);
+        return;
+      }
+
+      final filePath = await scannerService.createPdfFromImages(imagePaths);
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw Exception('Generated PDF file not found');
+      }
+
+      final fileSize = await file.length();
+      final fileName = filePath.split('/').last;
+
+      final validation = FileValidator.validate(fileName, fileSize);
+      if (!validation.isValid) {
+        state = state.copyWith(
+          status: UploadStatus.error,
+          errorMessage: validation.errorMessage,
+        );
+        return;
+      }
+
+      state = state.copyWith(
+        status: UploadStatus.analyzing,
+        filePath: filePath,
+        fileName: fileName,
+        fileSizeBytes: fileSize,
+        fileType: 'pdf',
+      );
+
+      await _analyzeFile(filePath, isScanned: true);
+    } catch (e) {
+      state = state.copyWith(
+        status: UploadStatus.error,
+        errorMessage: 'Scan failed: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<void> _analyzeFile(String path, {required bool isScanned}) async {
+    try {
+      final analysis = await _analysisService.analyzeFile(File(path), isScanned: isScanned);
+      
+      state = state.copyWith(
+        status: UploadStatus.idle,
+        analysis: analysis,
+        // Auto-select color mode if color pages are detected
+        isColor: analysis.colorPages > 0,
+      );
+    } catch (e) {
+      // If analysis fails, fallback to idle without analysis so user can still proceed
+      state = state.copyWith(
+        status: UploadStatus.idle,
       );
     }
   }
@@ -181,7 +257,7 @@ class UploadNotifier extends Notifier<UploadState> {
 
       state = state.copyWith(uploadProgress: 0.2);
 
-      // Use the repository pattern via direct service for path-based upload
+      // Upload file
       final fileUrl = await _storageService.uploadFile(
         jobId: jobId,
         filePath: state.filePath!,
@@ -190,6 +266,8 @@ class UploadNotifier extends Notifier<UploadState> {
 
       state = state.copyWith(uploadProgress: 0.7);
 
+      // We still create PrintJob directly for Phase 1 backwards compatibility
+      // In Phase 3, this changes to creating an Order instead
       final job = PrintJobModel(
         id: jobId,
         userId: _userId,
@@ -198,6 +276,7 @@ class UploadNotifier extends Notifier<UploadState> {
         fileName: state.fileName!,
         fileType: state.fileType ?? 'pdf',
         fileSizeBytes: state.fileSizeBytes,
+        pageCount: state.analysis?.totalPages,
         status: PrintJobStatus.uploaded,
         copies: state.copies,
         isColor: state.isColor,

@@ -5,12 +5,14 @@ class PricingModel {
   final double colorPerPage;
   final double duplexDiscount; // percentage (0–100)
   final Map<int, double> bulkDiscounts; // minPages → discount%
+  final double taxPercent;
 
   const PricingModel({
     this.bwPerPage = 2.0,
     this.colorPerPage = 10.0,
     this.duplexDiscount = 0,
     this.bulkDiscounts = const {},
+    this.taxPercent = 0.0,
   });
 
   factory PricingModel.fromMap(Map<String, dynamic>? map) {
@@ -19,6 +21,7 @@ class PricingModel {
       bwPerPage: (map['bwPerPage'] as num?)?.toDouble() ?? 2.0,
       colorPerPage: (map['colorPerPage'] as num?)?.toDouble() ?? 10.0,
       duplexDiscount: (map['duplexDiscount'] as num?)?.toDouble() ?? 0,
+      taxPercent: (map['taxPercent'] as num?)?.toDouble() ?? 0.0,
       bulkDiscounts: (map['bulkDiscount'] as Map<String, dynamic>?)?.map(
             (key, value) =>
                 MapEntry(int.tryParse(key) ?? 0, (value as num).toDouble()),
@@ -32,6 +35,7 @@ class PricingModel {
       'bwPerPage': bwPerPage,
       'colorPerPage': colorPerPage,
       'duplexDiscount': duplexDiscount,
+      'taxPercent': taxPercent,
       'bulkDiscount': bulkDiscounts.map(
         (key, value) => MapEntry(key.toString(), value),
       ),

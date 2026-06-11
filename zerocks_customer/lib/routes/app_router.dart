@@ -10,6 +10,11 @@ import '../features/upload/screens/upload_screen.dart';
 import '../features/print_job/screens/job_tracking_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/notifications/screens/notifications_screen.dart';
+import '../features/order/screens/print_settings_screen.dart';
+import '../features/order/screens/services_screen.dart';
+import '../features/order/screens/stationery_screen.dart';
+import '../features/order/screens/cart_screen.dart';
+import '../features/order/screens/payment_status_screen.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -63,6 +68,49 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final shopId = state.pathParameters['shopId']!;
           return UploadScreen(shopId: shopId);
+        },
+      ),
+      GoRoute(
+        path: '/order/settings/:shopId',
+        builder: (context, state) {
+          final shopId = state.pathParameters['shopId']!;
+          return PrintSettingsScreen(shopId: shopId);
+        },
+      ),
+      GoRoute(
+        path: '/order/services/:shopId',
+        builder: (context, state) {
+          final shopId = state.pathParameters['shopId']!;
+          return ServicesScreen(shopId: shopId);
+        },
+      ),
+      GoRoute(
+        path: '/order/stationery/:shopId',
+        builder: (context, state) {
+          final shopId = state.pathParameters['shopId']!;
+          return StationeryScreen(shopId: shopId);
+        },
+      ),
+      GoRoute(
+        path: '/order/cart/:shopId',
+        builder: (context, state) {
+          final shopId = state.pathParameters['shopId']!;
+          return CartScreen(shopId: shopId);
+        },
+      ),
+      GoRoute(
+        path: '/order/payment-status',
+        builder: (context, state) {
+          final successStr = state.uri.queryParameters['success'];
+          final isSuccess = successStr == 'true';
+          final orderId = state.uri.queryParameters['orderId'];
+          final error = state.uri.queryParameters['error'];
+          
+          return PaymentStatusScreen(
+            isSuccess: isSuccess,
+            orderId: orderId,
+            errorMessage: error,
+          );
         },
       ),
       GoRoute(

@@ -10,6 +10,7 @@ class JobListTile extends StatelessWidget {
   final VoidCallback? onPrint;
   final VoidCallback onAdvanceStatus;
   final VoidCallback onMarkComplete;
+  final VoidCallback? onViewOrder;
 
   const JobListTile({
     super.key,
@@ -18,6 +19,7 @@ class JobListTile extends StatelessWidget {
     this.onPrint,
     required this.onAdvanceStatus,
     required this.onMarkComplete,
+    this.onViewOrder,
   });
 
   @override
@@ -151,6 +153,17 @@ class JobListTile extends StatelessWidget {
                     tooltip: 'Preview File',
                     onPressed: onPreview,
                     color: colorScheme.primary,
+                  ),
+
+                if (job.orderId != null && onViewOrder != null)
+                  const SizedBox(width: 6),
+
+                if (job.orderId != null && onViewOrder != null)
+                  _ActionButton(
+                    icon: Icons.receipt_long_outlined,
+                    tooltip: 'View Order Details',
+                    onPressed: onViewOrder!,
+                    color: Colors.blueAccent,
                   ),
 
                 if (job.fileUrl != null && job.fileUrl!.isNotEmpty)

@@ -18,19 +18,24 @@ class BottomNavBar extends StatelessWidget {
       labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       destinations: const [
         NavigationDestination(
-          icon: Icon(Icons.storefront_outlined),
-          selectedIcon: Icon(Icons.storefront),
-          label: 'Shops',
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home),
+          label: 'Home',
         ),
         NavigationDestination(
           icon: Icon(Icons.receipt_long_outlined),
           selectedIcon: Icon(Icons.receipt_long),
-          label: 'My Jobs',
+          label: 'Orders',
         ),
         NavigationDestination(
-          icon: Icon(Icons.person_outline),
-          selectedIcon: Icon(Icons.person),
-          label: 'Profile',
+          icon: Icon(Icons.qr_code_scanner_outlined),
+          selectedIcon: Icon(Icons.qr_code_scanner),
+          label: 'Scan',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.storefront_outlined),
+          selectedIcon: Icon(Icons.storefront),
+          label: 'Shops',
         ),
       ],
     );

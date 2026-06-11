@@ -3,6 +3,11 @@ import '../models/user_model.dart';
 import '../models/shop_model.dart';
 import '../models/shop_owner_model.dart';
 import '../models/print_job_model.dart';
+import '../models/order_model.dart';
+import '../models/product_model.dart';
+import '../models/service_model.dart';
+import '../models/inventory_model.dart';
+import '../models/payment_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -223,6 +228,193 @@ class FirestoreService {
     });
   }
 
+  // ── Orders ─────────────────────────────────────────────
+
+  /// Create a new order
+  Future<String> createOrder(OrderModel order) async {
+    final docRef = _db.collection('orders').doc(order.id);
+    await docRef.set(order.toMap());
+    return docRef.id;
+  }
+
+  /// Update order status
+  Future<void> updateOrderStatus(String orderId, OrderStatus status) async {
+    final data = <String, dynamic>{
+      'status': status.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (status == OrderStatus.completed || status == OrderStatus.cancelled) {
+      data['completedAt'] = FieldValue.serverTimestamp();
+    }
+
+    await _db.collection('orders').doc(orderId).update(data);
+  }
+
+  /// Stream orders for a user
+  Stream<List<OrderModel>> streamOrdersByUser(String userId) {
+    return _db
+        .collection('orders')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final orders = snapshot.docs
+          .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+          .toList();
+      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return orders;
+    });
+  }
+
+  /// Stream active orders for a shop
+  Stream<List<OrderModel>> streamActiveOrdersByShop(String shopId) {
+    return _db
+        .collection('orders')
+        .where('shopId', isEqualTo: shopId)
+        .snapshots()
+        .map((snapshot) {
+      final activeStatuses = {'paid', 'inQueue', 'printing', 'ready'};
+      final orders = snapshot.docs
+          .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
+          .where((order) => activeStatuses.contains(order.status.name))
+          .toList();
+      orders.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return orders;
+    });
+  }
+
+  /// Stream a single order
+  Stream<OrderModel?> streamOrder(String orderId) {
+    return _db
+        .collection('orders')
+        .doc(orderId)
+        .snapshots()
+        .map((doc) {
+      if (!doc.exists || doc.data() == null) return null;
+      return OrderModel.fromMap(doc.data()!, doc.id);
+    });
+  }
+
+  // ── Shop Management (Products, Services, Inventory) ────
+
+  // Products
+  Future<void> createProduct(String shopId, ProductModel product) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('products')
+        .doc(product.id)
+        .set(product.toMap());
+  }
+
+  Future<void> updateProduct(String shopId, String productId, Map<String, dynamic> data) async {
+    data['updatedAt'] = FieldValue.serverTimestamp();
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('products')
+        .doc(productId)
+        .update(data);
+  }
+
+  Future<void> deleteProduct(String shopId, String productId) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('products')
+        .doc(productId)
+        .delete();
+  }
+
+  Stream<List<ProductModel>> streamProducts(String shopId) {
+    return _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('products')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ProductModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Services
+  Future<void> createService(String shopId, ServiceModel service) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('services')
+        .doc(service.id)
+        .set(service.toMap());
+  }
+
+  Future<void> updateService(String shopId, String serviceId, Map<String, dynamic> data) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('services')
+        .doc(serviceId)
+        .update(data);
+  }
+
+  Future<void> deleteService(String shopId, String serviceId) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('services')
+        .doc(serviceId)
+        .delete();
+  }
+
+  Stream<List<ServiceModel>> streamServices(String shopId) {
+    return _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('services')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => ServiceModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // Inventory
+  Future<void> createInventory(String shopId, InventoryModel item) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('inventory')
+        .doc(item.id)
+        .set(item.toMap());
+  }
+
+  Future<void> updateInventory(String shopId, String itemId, Map<String, dynamic> data) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('inventory')
+        .doc(itemId)
+        .update(data);
+  }
+
+  Future<void> deleteInventory(String shopId, String itemId) async {
+    await _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('inventory')
+        .doc(itemId)
+        .delete();
+  }
+
+  Stream<List<InventoryModel>> streamInventory(String shopId) {
+    return _db
+        .collection('shops')
+        .doc(shopId)
+        .collection('inventory')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => InventoryModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
   // ── Admin Methods ─────────────────────────────────────
 
   /// Stream ALL shops (for admin dashboard)
@@ -245,6 +437,18 @@ class FirestoreService {
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => PrintJobModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Stream ALL orders across all shops (for admin dashboard)
+  Stream<List<OrderModel>> getAllOrders() {
+    return _db
+        .collection('orders')
+        .orderBy('createdAt', descending: true)
+        .limit(200)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => OrderModel.fromMap(doc.data(), doc.id))
             .toList());
   }
 
@@ -288,5 +492,12 @@ class FirestoreService {
   Future<Map<String, dynamic>?> getPlatformConfig() async {
     final doc = await _db.collection('platform').doc('config').get();
     return doc.data();
+  }
+
+  // ── Payments ──────────────────────────────────────────
+
+  /// Create a payment record in Firestore
+  Future<void> createPayment(String orderId, PaymentModel payment) async {
+    await _db.collection('payments').doc(orderId).set(payment.toMap());
   }
 }

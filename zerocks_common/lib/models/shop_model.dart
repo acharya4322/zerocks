@@ -12,6 +12,8 @@ class ShopModel {
   final bool isVerified;
   final bool isApproved;
   final String ownerId;
+  final String? uniqueShopCode;
+  final String? qrData;
   final double pricePerPage;
   final PricingModel? pricing;
 
@@ -49,6 +51,8 @@ class ShopModel {
     this.isVerified = false,
     this.isApproved = true,
     required this.ownerId,
+    this.uniqueShopCode,
+    this.qrData,
     required this.pricePerPage,
     this.pricing,
     this.hasColor = false,
@@ -82,6 +86,8 @@ class ShopModel {
       isVerified: map['isVerified'] as bool? ?? false,
       isApproved: map['isApproved'] as bool? ?? true,
       ownerId: map['ownerId'] as String,
+      uniqueShopCode: map['uniqueShopCode'] as String?,
+      qrData: map['qrData'] as String?,
       pricePerPage: (map['pricePerPage'] as num).toDouble(),
       pricing: map['pricing'] != null
           ? PricingModel.fromMap(map['pricing'] as Map<String, dynamic>)
@@ -124,6 +130,8 @@ class ShopModel {
       'isVerified': isVerified,
       'isApproved': isApproved,
       'ownerId': ownerId,
+      'uniqueShopCode': uniqueShopCode,
+      'qrData': qrData,
       'pricePerPage': pricePerPage,
       'pricing': pricing?.toMap(),
       'capabilities': {
@@ -157,6 +165,8 @@ class ShopModel {
     bool? isVerified,
     bool? isApproved,
     String? ownerId,
+    String? uniqueShopCode,
+    String? qrData,
     double? pricePerPage,
     PricingModel? pricing,
     bool? hasColor,
@@ -184,6 +194,8 @@ class ShopModel {
       isVerified: isVerified ?? this.isVerified,
       isApproved: isApproved ?? this.isApproved,
       ownerId: ownerId ?? this.ownerId,
+      uniqueShopCode: uniqueShopCode ?? this.uniqueShopCode,
+      qrData: qrData ?? this.qrData,
       pricePerPage: pricePerPage ?? this.pricePerPage,
       pricing: pricing ?? this.pricing,
       hasColor: hasColor ?? this.hasColor,

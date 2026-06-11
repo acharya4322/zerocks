@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1056642493461",
+    "project_id": "zerocks-35efe",
+    "storage_bucket": "zerocks-35efe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1056642493461:android:b83331025fce4cb34df21c",
+        "android_client_info": {
+          "package_name": "com.zerocks.zerocks_customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD3mFZsm17IEbousgVg4P1XdtpP_dqlVWg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

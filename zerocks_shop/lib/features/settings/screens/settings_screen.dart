@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 import 'package:zerocks_common/zerocks_common.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../providers/app_providers.dart';
@@ -253,6 +254,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           ),
                           const SizedBox(height: 32),
 
+                          // Advanced Config Section
+                          Text(
+                            'Configuration',
+                            style: textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Manage pricing, products, and inventory',
+                            style: textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            children: [
+                              _buildConfigCard(
+                                context,
+                                icon: Icons.attach_money,
+                                title: 'Print Pricing',
+                                subtitle: 'Rates, duplex discount, tax',
+                                onTap: () => context.push('/pricing'),
+                              ),
+                              _buildConfigCard(
+                                context,
+                                icon: Icons.inventory_2_outlined,
+                                title: 'Products & Stationery',
+                                subtitle: 'Manage shop items for sale',
+                                onTap: () => context.push('/products'),
+                              ),
+                              _buildConfigCard(
+                                context,
+                                icon: Icons.warehouse_outlined,
+                                title: 'Inventory Tracker',
+                                subtitle: 'Track paper stock and thresholds',
+                                onTap: () => context.push('/inventory'),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 48),
+
+                          // Divider
+                          Divider(
+                            color: colorScheme.outline.withValues(alpha: 0.15),
+                          ),
+                          const SizedBox(height: 32),
+
                           // Account section
                           Text(
                             'Account',
@@ -309,6 +358,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildConfigCard(BuildContext context, {required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 250,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

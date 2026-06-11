@@ -50,23 +50,23 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyA3pN0tUjlfhhsK6731m9Np_Y36KAZ6Kcs',
-    appId: '1:1056642493461:web:ab2518225f4265484df21c',
-    messagingSenderId: '1056642493461',
-    projectId: 'zerocks-35efe',
-    authDomain: 'zerocks-35efe.firebaseapp.com',
-    storageBucket: 'zerocks-35efe.firebasestorage.app',
-    measurementId: 'G-1W4GQ3ZJXE',
+    apiKey: 'AIzaSyBq1r0AhurCWvM8Q6OIBRS913qiUPhgTjw',
+    appId: '1:500637949074:web:bd1d0b3bbfcd14f15dda4b',
+    messagingSenderId: '500637949074',
+    projectId: 'zerocks-14278',
+    authDomain: 'zerocks-14278.firebaseapp.com',
+    storageBucket: 'zerocks-14278.firebasestorage.app',
+    measurementId: 'G-VKHWZWS9NS',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyA3pN0tUjlfhhsK6731m9Np_Y36KAZ6Kcs',
-    appId: '1:1056642493461:web:a2ee02bb0e83fa974df21c',
-    messagingSenderId: '1056642493461',
-    projectId: 'zerocks-35efe',
-    authDomain: 'zerocks-35efe.firebaseapp.com',
-    storageBucket: 'zerocks-35efe.firebasestorage.app',
-    measurementId: 'G-2MMZSX1W3B',
+    apiKey: 'AIzaSyBq1r0AhurCWvM8Q6OIBRS913qiUPhgTjw',
+    appId: '1:500637949074:web:b352c338e2db7cf95dda4b',
+    messagingSenderId: '500637949074',
+    projectId: 'zerocks-14278',
+    authDomain: 'zerocks-14278.firebaseapp.com',
+    storageBucket: 'zerocks-14278.firebasestorage.app',
+    measurementId: 'G-XF1TQFG78R',
   );
 
 }

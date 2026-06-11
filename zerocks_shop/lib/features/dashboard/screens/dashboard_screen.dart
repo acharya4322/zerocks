@@ -8,6 +8,7 @@ import '../../../providers/app_providers.dart';
 import '../../print_queue/providers/queue_provider.dart';
 import '../widgets/stats_card.dart';
 import '../widgets/online_toggle.dart';
+import 'shop_qr_screen.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -117,8 +118,35 @@ class _DashboardContent extends ConsumerWidget {
           ),
           const SizedBox(height: 28),
 
-          // Online toggle
-          const OnlineToggle(),
+          // Controls
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Expanded(child: OnlineToggle()),
+              const SizedBox(width: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context, 
+                    MaterialPageRoute(builder: (_) => ShopQrScreen(shop: shop)),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.primaryContainer,
+                  foregroundColor: colorScheme.onPrimaryContainer,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                icon: const Icon(Icons.qr_code_2_rounded),
+                label: const Text(
+                  'My Shop QR',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
 
           // Stats row

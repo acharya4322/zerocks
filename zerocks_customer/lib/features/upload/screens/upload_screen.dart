@@ -182,64 +182,206 @@ class UploadScreen extends ConsumerWidget {
                       ),
                       IconButton(
                         icon: Icon(
-                          Icons.swap_horiz,
-                          color: colorScheme.primary,
+                          Icons.delete_outline,
+                          color: colorScheme.error,
                         ),
-                        onPressed: uploadState.status == UploadStatus.uploading
+                        onPressed: uploadState.status == UploadStatus.uploading || 
+                                   uploadState.status == UploadStatus.analyzing
                             ? null
                             : () => ref
                                 .read(uploadNotifierProvider.notifier)
-                                .pickFile(),
+                                .reset(),
                       ),
                     ],
                   ),
                 ),
               ),
-            ] else ...[
-              // File Picker Area
-              InkWell(
-                onTap: uploadState.status == UploadStatus.picking
-                    ? null
-                    : () =>
-                        ref.read(uploadNotifierProvider.notifier).pickFile(),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: colorScheme.outline.withValues(alpha: 0.5),
-                      width: 1.5,
-                    ),
+              
+              if (uploadState.status == UploadStatus.analyzing) ...[
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                  margin: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    color: colorScheme.surfaceContainerLowest,
                   ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.upload_file_rounded,
-                        size: 48,
-                        color: colorScheme.primary.withValues(alpha: 0.7),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        uploadState.status == UploadStatus.picking
-                            ? 'Opening file picker...'
-                            : 'Tap to select a document',
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'PDF, JPG, PNG • Max ${AppConstants.maxFileSizeMB.toInt()} MB',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant
-                              .withValues(alpha: 0.7),
+                        const SizedBox(width: 16),
+                        Text(
+                          'Analyzing document...',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSecondaryContainer,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
+              ],
+              
+              if (uploadState.analysis != null && uploadState.status != UploadStatus.analyzing) ...[
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  color: colorScheme.secondaryContainer.withValues(alpha: 0.3),
+                  margin: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: colorScheme.secondaryContainer,
+                      width: 1,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.analytics_outlined,
+                              size: 20,
+                              color: colorScheme.secondary,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Analysis Results',
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: colorScheme.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildAnalysisMetric(
+                              context,
+                              icon: Icons.description_outlined,
+                              value: '${uploadState.analysis!.totalPages}',
+                              label: 'Pages',
+                            ),
+                            _buildAnalysisMetric(
+                              context,
+                              icon: Icons.palette_outlined,
+                              value: '${uploadState.analysis!.colorPages}',
+                              label: 'Color',
+                            ),
+                            _buildAnalysisMetric(
+                              context,
+                              icon: Icons.invert_colors_off_outlined,
+                              value: '${uploadState.analysis!.bwPages}',
+                              label: 'B&W',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ] else ...[
+              // Action Area: Scan or Pick
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: uploadState.status == UploadStatus.picking
+                          ? null
+                          : () => ref.read(uploadNotifierProvider.notifier).scanDocument(),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: colorScheme.outline.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          color: colorScheme.surfaceContainerLowest,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.document_scanner_outlined,
+                              size: 40,
+                              color: colorScheme.primary.withValues(alpha: 0.8),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Scan',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Use Camera',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: InkWell(
+                      onTap: uploadState.status == UploadStatus.picking
+                          ? null
+                          : () => ref.read(uploadNotifierProvider.notifier).pickFile(),
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: colorScheme.outline.withValues(alpha: 0.5),
+                            width: 1.5,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          color: colorScheme.surfaceContainerLowest,
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.upload_file_rounded,
+                              size: 40,
+                              color: colorScheme.primary.withValues(alpha: 0.8),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Upload',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'PDF, JPG, PNG',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
 
@@ -307,45 +449,60 @@ class UploadScreen extends ConsumerWidget {
 
             const SizedBox(height: 36),
 
-            // Upload Button
-            if (uploadState.status == UploadStatus.uploading) ...[
-              Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: uploadState.uploadProgress > 0
-                          ? uploadState.uploadProgress
-                          : null,
-                      minHeight: 6,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Uploading... ${(uploadState.uploadProgress * 100).toInt()}%',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+            // Continue Button
+            FilledButton.icon(
+              onPressed: uploadState.fileName != null && uploadState.status != UploadStatus.analyzing
+                  ? () => context.push('/order/settings/$shopId')
+                  : null,
+              icon: const Icon(Icons.arrow_forward_outlined),
+              label: const Text('Continue to Settings'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(double.infinity, 56),
               ),
-            ] else
-              FilledButton.icon(
-                onPressed: uploadState.fileName != null
-                    ? () => ref
-                        .read(uploadNotifierProvider.notifier)
-                        .uploadAndCreateJob(shopId)
-                    : null,
-                icon: const Icon(Icons.cloud_upload_outlined),
-                label: const Text('Upload & Print'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                ),
-              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAnalysisMetric(
+    BuildContext context, {
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: colorScheme.secondaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: colorScheme.onSecondaryContainer,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }

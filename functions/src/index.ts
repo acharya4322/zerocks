@@ -12,7 +12,9 @@ admin.initializeApp();
 
 // Export all functions
 export { onJobCreated } from "./onJobCreated";
-export { onJobStatusChanged } from "./onJobCompleted";
+export { onJobStatusChanged as onJobCompleted } from "./onJobCompleted";
 export { generateSignedUrl } from "./generateSignedUrl";
-export { cleanupExpiredJobs } from "./cleanupExpired";
+export { cleanupExpiredJobs as cleanupExpired } from "./cleanupExpired";
 export { setCustomClaims } from "./setCustomClaims";
+export { createRazorpayOrder } from "./createRazorpayOrder";
+export { verifyPayment } from "./verifyPayment";

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:zerocks_common/zerocks_common.dart';
+import '../../home/widgets/profile_modal.dart';
 import '../providers/shops_provider.dart';
 import '../widgets/shop_card.dart';
 
@@ -42,15 +43,42 @@ class _NearbyShopsScreenState extends ConsumerState<NearbyShopsScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: const Text('Nearby Shops'),
+        title: Text(
+          'Nearby Print Hubs',
+          style: textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
+        ),
+        centerTitle: false,
+        surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh_rounded),
             onPressed: () {
               ref.invalidate(currentPositionProvider);
               ref.invalidate(nearbyShopsProvider);
             },
+          ),
+          GestureDetector(
+            onTap: () => showProfileModal(context, ref),
+            child: Padding(
+              padding: const EdgeInsets.only(right: 16.0, left: 8.0),
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: colorScheme.outlineVariant, width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 14,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
+                  child: Icon(Icons.person_rounded, color: colorScheme.onSurfaceVariant, size: 18),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -112,39 +140,81 @@ class _NearbyShopsScreenState extends ConsumerState<NearbyShopsScreen> {
           );
 
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Map (top half) — SINGLE instance, markers update reactively
-              Expanded(
-                flex: 4,
-                child: Stack(
-                  children: [
-                    GoogleMap(
-                      initialCameraPosition: CameraPosition(
-                        target: LatLng(userLat, userLng),
-                        zoom: 14,
+              // Map section with rounded corners
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Container(
+                  height: 240,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colorScheme.shadow.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
-                      markers: markers.value ?? {},
-                      myLocationEnabled: true,
-                      myLocationButtonEnabled: true,
-                      zoomControlsEnabled: false,
-                      mapToolbarEnabled: false,
-                      onMapCreated: (controller) {
-                        _mapController = controller;
-                      },
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(24),
+                    child: Stack(
+                      children: [
+                        GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: LatLng(userLat, userLng),
+                            zoom: 14,
+                          ),
+                          markers: markers.value ?? {},
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: true,
+                          zoomControlsEnabled: false,
+                          mapToolbarEnabled: false,
+                          onMapCreated: (controller) {
+                            _mapController = controller;
+                          },
+                        ),
+                        if (shopsAsync.isLoading)
+                          const Center(child: CircularProgressIndicator()),
+                      ],
                     ),
-                    if (shopsAsync.isLoading)
-                      const Center(child: CircularProgressIndicator()),
+                  ),
+                ),
+              ),
+              // Shops List Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Available Shops',
+                      style: textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    if (shopsAsync.hasValue && shopsAsync.value != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${shopsAsync.value!.length} found',
+                          style: textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
-              // Divider
-              Container(
-                height: 4,
-                color: colorScheme.surfaceContainerHighest,
-              ),
-              // Shops List (bottom half)
+              // Shops List
               Expanded(
-                flex: 5,
                 child: shopsAsync.when(
                   loading: () => const Center(
                     child: CircularProgressIndicator(),
@@ -219,13 +289,16 @@ class _NearbyShopsScreenState extends ConsumerState<NearbyShopsScreen> {
                     });
 
                     return ListView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 80),
+                      padding: const EdgeInsets.only(top: 4, bottom: 80, left: 16, right: 16),
                       itemCount: sortedShops.length,
                       itemBuilder: (context, index) {
-                        return ShopCard(
-                          shop: sortedShops[index],
-                          userLat: userLat,
-                          userLng: userLng,
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: ShopCard(
+                            shop: sortedShops[index],
+                            userLat: userLat,
+                            userLng: userLng,
+                          ),
                         );
                       },
                     );

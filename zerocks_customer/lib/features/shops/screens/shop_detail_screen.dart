@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:zerocks_common/zerocks_common.dart';
 import '../providers/shops_provider.dart';
+import '../providers/shop_products_provider.dart';
+import '../../order/providers/cart_provider.dart';
+import '../../upload/providers/upload_provider.dart';
 
 class ShopDetailScreen extends ConsumerWidget {
   final String shopId;
@@ -218,16 +222,46 @@ class ShopDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 32),
-                // Upload Button
-                FilledButton.icon(
-                  onPressed: shop.isOnline
-                      ? () => context.push('/upload/${shop.id}')
-                      : null,
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Upload Document'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 56),
-                  ),
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: shop.isOnline
+                            ? () {
+                                ref.read(uploadNotifierProvider.notifier).reset();
+                                context.push('/upload/${shop.id}');
+                                Future.delayed(const Duration(milliseconds: 400), () {
+                                  ref.read(uploadNotifierProvider.notifier).scanDocument();
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.document_scanner),
+                        label: const Text('Scan'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 56),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: shop.isOnline
+                            ? () {
+                                ref.read(uploadNotifierProvider.notifier).reset();
+                                context.push('/upload/${shop.id}');
+                              }
+                            : null,
+                        icon: const Icon(Icons.upload_file),
+                        label: const Text('Upload'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 56),
+                          backgroundColor: colorScheme.secondaryContainer,
+                          foregroundColor: colorScheme.onSecondaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 if (!shop.isOnline) ...[
                   const SizedBox(height: 12),
@@ -240,6 +274,63 @@ class ShopDetailScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+
+                const SizedBox(height: 48),
+
+                // Products Section
+                Text(
+                  'Stationery & Gifts',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final productsAsync = ref.watch(shopProductsProvider(shop.id));
+                    
+                    return productsAsync.when(
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (e, _) => Text('Error loading products: $e'),
+                      data: (products) {
+                        if (products.isEmpty) {
+                          return Container(
+                            padding: const EdgeInsets.all(24),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerLow,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'No products available right now.',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.68,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                          ),
+                          itemCount: products.length,
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            return _ProductCard(product: product, shopId: shop.id);
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 48),
               ],
             ),
           );
@@ -294,3 +385,93 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
+
+class _ProductCard extends ConsumerWidget {
+  final ProductModel product;
+  final String shopId;
+
+  const _ProductCard({required this.product, required this.shopId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: product.imageUrl != null
+                  ? Image.network(
+                      product.imageUrl!,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(
+                      color: colorScheme.surfaceContainerHighest,
+                      child: Icon(Icons.image_outlined, color: colorScheme.onSurfaceVariant, size: 32),
+                    ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  style: textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '₹${product.price.toStringAsFixed(0)}',
+                  style: textTheme.labelLarge?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonal(
+                    onPressed: () {
+                      // Add to Cart
+                      ref.read(cartNotifierProvider.notifier)
+                         .addStationeryItem(product, 1);
+                      
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.name} added to cart!'),
+                          action: SnackBarAction(
+                            label: 'VIEW CART',
+                            onPressed: () => context.push('/order/cart/$shopId'),
+                          ),
+                        ),
+                      );
+                    },
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('Add to Cart'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

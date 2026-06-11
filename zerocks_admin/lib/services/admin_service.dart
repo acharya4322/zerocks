@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
@@ -37,6 +38,9 @@ class AdminService {
       await tempAuth.signOut();
 
       final shopId = _uuid.v4();
+      final uniqueShopCode = 'ZRX${Random().nextInt(9999).toString().padLeft(4, '0')}';
+      final qrData = 'zerocks://shop/$shopId';
+
       final shop = ShopModel(
         id: shopId,
         name: shopName,
@@ -45,6 +49,8 @@ class AdminService {
         longitude: longitude,
         isOnline: false,
         ownerId: uid,
+        uniqueShopCode: uniqueShopCode,
+        qrData: qrData,
         pricePerPage: pricePerPage,
         createdAt: DateTime.now(),
       );

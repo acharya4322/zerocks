@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:printing/printing.dart';
 import 'package:http/http.dart' as http;
 import 'package:zerocks_common/zerocks_common.dart';
@@ -259,6 +260,9 @@ class _QueueContent extends ConsumerWidget {
                             _advanceStatus(context, ref, job),
                         onMarkComplete: () =>
                             _markComplete(context, ref, job),
+                        onViewOrder: job.orderId != null
+                            ? () => context.push('/order/${job.orderId}')
+                            : null,
                       );
                     },
                   ),
@@ -337,6 +341,32 @@ class _QueueContent extends ConsumerWidget {
     try {
       final firestoreService = ref.read(firestoreServiceProvider);
       await firestoreService.updateJobStatus(job.id, nextStatus);
+
+      if (job.orderId != null) {
+        OrderStatus? orderStatus;
+        switch (nextStatus) {
+          case PrintJobStatus.inQueue:
+            orderStatus = OrderStatus.inQueue;
+            break;
+          case PrintJobStatus.printing:
+            orderStatus = OrderStatus.processing;
+            break;
+          case PrintJobStatus.ready:
+            orderStatus = OrderStatus.ready;
+            break;
+          case PrintJobStatus.completed:
+            orderStatus = OrderStatus.completed;
+            break;
+          case PrintJobStatus.cancelled:
+            orderStatus = OrderStatus.cancelled;
+            break;
+          default:
+            break;
+        }
+        if (orderStatus != null) {
+          await firestoreService.updateOrderStatus(job.orderId!, orderStatus);
+        }
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -386,6 +416,11 @@ class _QueueContent extends ConsumerWidget {
       final firestoreService = ref.read(firestoreServiceProvider);
       await firestoreService.updateJobStatus(
           job.id, PrintJobStatus.completed);
+
+      if (job.orderId != null) {
+        await firestoreService.updateOrderStatus(
+            job.orderId!, OrderStatus.completed);
+      }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

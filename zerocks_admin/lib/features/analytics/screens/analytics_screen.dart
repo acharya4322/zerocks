@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:zerocks_common/zerocks_common.dart';
 import '../../shops/providers/shops_provider.dart';
 import '../../jobs/providers/jobs_provider.dart';
+import '../../jobs/providers/orders_provider.dart';
 
 class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
@@ -11,6 +13,7 @@ class AnalyticsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final shopsAsync = ref.watch(allShopsProvider);
     final jobsAsync = ref.watch(allJobsProvider);
+    final ordersAsync = ref.watch(allOrdersProvider);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -44,11 +47,16 @@ class AnalyticsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 16),
                 _StatCard(
-                  icon: Icons.store_outlined,
-                  label: 'Online Now',
-                  value: shopsAsync.when(
-                    data: (shops) =>
-                        shops.where((s) => s.isOnline).length.toString(),
+                  icon: Icons.currency_rupee,
+                  label: 'Total Revenue',
+                  value: ordersAsync.when(
+                    data: (orders) {
+                      final total = orders.fold(
+                        0.0,
+                        (sum, order) => sum + order.totalAmount,
+                      );
+                      return '₹${total.toStringAsFixed(0)}';
+                    },
                     loading: () => '...',
                     error: (_, __) => '—',
                   ),
@@ -57,10 +65,10 @@ class AnalyticsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: 16),
                 _StatCard(
-                  icon: Icons.print_rounded,
-                  label: 'Total Jobs',
-                  value: jobsAsync.when(
-                    data: (jobs) => jobs.length.toString(),
+                  icon: Icons.shopping_bag_rounded,
+                  label: 'Total Orders',
+                  value: ordersAsync.when(
+                    data: (orders) => orders.length.toString(),
                     loading: () => '...',
                     error: (_, __) => '—',
                   ),
@@ -84,20 +92,54 @@ class AnalyticsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
 
-            // Job status breakdown
-            Text(
-              'Job Status Breakdown',
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 16),
             Expanded(
-              child: jobsAsync.when(
-                data: (jobs) => _StatusBreakdown(jobs: jobs),
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('Error: $e')),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Revenue Breakdown',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: ordersAsync.when(
+                            data: (orders) => _RevenueBreakdown(orders: orders),
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (e, _) => Center(child: Text('Error: $e')),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Job Status Distribution',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Expanded(
+                          child: jobsAsync.when(
+                            data: (jobs) => _StatusDistribution(jobs: jobs),
+                            loading: () => const Center(child: CircularProgressIndicator()),
+                            error: (e, _) => Center(child: Text('Error: $e')),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -171,23 +213,109 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _StatusBreakdown extends StatelessWidget {
-  final List<PrintJobModel> jobs;
+class _RevenueBreakdown extends StatelessWidget {
+  final List<OrderModel> orders;
 
-  const _StatusBreakdown({required this.jobs});
+  const _RevenueBreakdown({required this.orders});
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final statusCounts = <String, int>{};
+    if (orders.isEmpty) {
+      return const Center(child: Text('No revenue data yet'));
+    }
 
+    double printTotal = 0;
+    double servicesTotal = 0;
+    double stationeryTotal = 0;
+
+    for (final order in orders) {
+      for (final item in order.items) {
+        if (item.type == OrderItemType.print) {
+          printTotal += (item.price * item.quantity);
+        } else if (item.type == OrderItemType.service) {
+          servicesTotal += (item.price * item.quantity);
+        } else if (item.type == OrderItemType.product) {
+          stationeryTotal += (item.price * item.quantity);
+        }
+      }
+    }
+
+    final total = printTotal + servicesTotal + stationeryTotal;
+    if (total == 0) return const Center(child: Text('No revenue data yet'));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Expanded(
+              child: PieChart(
+                PieChartData(
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 40,
+                  sections: [
+                    if (printTotal > 0)
+                      PieChartSectionData(
+                        color: Colors.blue,
+                        value: printTotal,
+                        title: '${((printTotal / total) * 100).toStringAsFixed(0)}%',
+                        radius: 50,
+                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    if (servicesTotal > 0)
+                      PieChartSectionData(
+                        color: Colors.purple,
+                        value: servicesTotal,
+                        title: '${((servicesTotal / total) * 100).toStringAsFixed(0)}%',
+                        radius: 50,
+                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    if (stationeryTotal > 0)
+                      PieChartSectionData(
+                        color: Colors.orange,
+                        value: stationeryTotal,
+                        title: '${((stationeryTotal / total) * 100).toStringAsFixed(0)}%',
+                        radius: 50,
+                        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _LegendItem(color: Colors.blue, text: 'Prints (₹${printTotal.toStringAsFixed(0)})'),
+                const SizedBox(height: 8),
+                _LegendItem(color: Colors.purple, text: 'Services (₹${servicesTotal.toStringAsFixed(0)})'),
+                const SizedBox(height: 8),
+                _LegendItem(color: Colors.orange, text: 'Stationery (₹${stationeryTotal.toStringAsFixed(0)})'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusDistribution extends StatelessWidget {
+  final List<PrintJobModel> jobs;
+
+  const _StatusDistribution({required this.jobs});
+
+  @override
+  Widget build(BuildContext context) {
+    if (jobs.isEmpty) {
+      return const Center(child: Text('No job data yet'));
+    }
+
+    final statusCounts = <String, int>{};
     for (final job in jobs) {
       final status = job.status.label;
       statusCounts[status] = (statusCounts[status] ?? 0) + 1;
-    }
-
-    if (statusCounts.isEmpty) {
-      return const Center(child: Text('No job data yet'));
     }
 
     final statusColors = {
@@ -199,70 +327,84 @@ class _StatusBreakdown extends StatelessWidget {
       'Cancelled': Colors.red,
     };
 
-    return ListView(
-      children: statusCounts.entries.map((entry) {
-        final percent = jobs.isEmpty ? 0.0 : entry.value / jobs.length;
-        final color = statusColors[entry.key] ?? Colors.grey;
+    final maxCount = statusCounts.values.isEmpty ? 1 : statusCounts.values.reduce((a, b) => a > b ? a : b);
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: BarChart(
+          BarChartData(
+            alignment: BarChartAlignment.spaceAround,
+            maxY: maxCount.toDouble() + 1,
+            barTouchData: BarTouchData(enabled: false),
+            titlesData: FlTitlesData(
+              show: true,
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: (value, meta) {
+                    final index = value.toInt();
+                    if (index >= statusCounts.length) return const SizedBox.shrink();
+                    final key = statusCounts.keys.elementAt(index);
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        key,
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
+            gridData: const FlGridData(show: false),
+            borderData: FlBorderData(show: false),
+            barGroups: statusCounts.entries.map((entry) {
+              final index = statusCounts.keys.toList().indexOf(entry.key);
+              final color = statusColors[entry.key] ?? Colors.grey;
+              return BarChartGroupData(
+                x: index,
+                barRods: [
+                  BarChartRodData(
+                    toY: entry.value.toDouble(),
                     color: color,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 100,
-                  child: Text(
-                    entry.key,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 13,
+                    width: 22,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      topRight: Radius.circular(4),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: percent,
-                      backgroundColor:
-                          colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      color: color,
-                      minHeight: 8,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 14),
-                SizedBox(
-                  width: 60,
-                  child: Text(
-                    '${entry.value} (${(percent * 100).toStringAsFixed(0)}%)',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+                ],
+              );
+            }).toList(),
           ),
-        );
-      }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final Color color;
+  final String text;
+
+  const _LegendItem({required this.color, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Text(text, style: const TextStyle(fontSize: 14)),
+      ],
     );
   }
 }

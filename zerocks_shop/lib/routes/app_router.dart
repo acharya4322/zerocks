@@ -6,6 +6,13 @@ import '../features/auth/screens/shop_login_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/print_queue/screens/queue_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
+import '../features/products/screens/products_screen.dart';
+import '../features/products/screens/product_form_screen.dart';
+import '../features/pricing/screens/pricing_screen.dart';
+import '../features/pricing/screens/services_screen.dart';
+import '../features/inventory/screens/inventory_screen.dart';
+import '../features/orders/screens/order_detail_screen.dart';
+import 'package:zerocks_common/zerocks_common.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -47,7 +54,39 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
           ),
+          GoRoute(
+            path: '/products',
+            builder: (context, state) => const ProductsScreen(),
+          ),
         ],
+      ),
+      GoRoute(
+        path: '/products/new',
+        builder: (context, state) => const ProductFormScreen(),
+      ),
+      GoRoute(
+        path: '/products/edit/:id',
+        builder: (context, state) => ProductFormScreen(
+          existingProduct: state.extra as ProductModel?,
+        ),
+      ),
+      GoRoute(
+        path: '/pricing',
+        builder: (context, state) => const PricingScreen(),
+      ),
+      GoRoute(
+        path: '/services',
+        builder: (context, state) => const ServicesScreen(),
+      ),
+      GoRoute(
+        path: '/inventory',
+        builder: (context, state) => const InventoryScreen(),
+      ),
+      GoRoute(
+        path: '/order/:id',
+        builder: (context, state) => OrderDetailScreen(
+          orderId: state.pathParameters['id']!,
+        ),
       ),
     ],
   );
@@ -63,7 +102,8 @@ class _ShopShell extends StatelessWidget {
     final currentPath = GoRouterState.of(context).matchedLocation;
     final selectedIndex = switch (currentPath) {
       '/queue' => 1,
-      '/settings' => 2,
+      '/products' => 2,
+      '/settings' => 3,
       _ => 0,
     };
 
@@ -81,6 +121,8 @@ class _ShopShell extends StatelessWidget {
                 case 1:
                   context.go('/queue');
                 case 2:
+                  context.go('/products');
+                case 3:
                   context.go('/settings');
               }
             },
@@ -126,6 +168,11 @@ class _ShopShell extends StatelessWidget {
                 icon: Icon(Icons.list_alt_outlined),
                 selectedIcon: Icon(Icons.list_alt_rounded),
                 label: Text('Queue'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.inventory_2_outlined),
+                selectedIcon: Icon(Icons.inventory_2_rounded),
+                label: Text('Products'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.settings_outlined),

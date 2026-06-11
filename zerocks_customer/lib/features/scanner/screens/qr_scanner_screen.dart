@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -22,27 +23,68 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
+  void _onDetect(BarcodeCapture capture) async {
     if (_hasScanned) return;
     final barcode = capture.barcodes.firstOrNull;
     if (barcode == null || barcode.rawValue == null) return;
 
     final value = barcode.rawValue!;
-    // Expect QR to contain shopId directly or a URL with shopId
-    String shopId;
+    // Expect QR to contain shopId or uniqueShopCode directly or a URL with it
+    String scannedId;
     if (value.startsWith('zerocks://shop/')) {
-      shopId = value.replaceFirst('zerocks://shop/', '');
+      scannedId = value.replaceFirst('zerocks://shop/', '');
     } else if (value.contains('/')) {
       // Try to extract last segment
-      shopId = value.split('/').last;
+      scannedId = value.split('/').last;
     } else {
-      shopId = value;
+      scannedId = value;
     }
 
-    if (shopId.isEmpty) return;
+    if (scannedId.isEmpty) return;
 
     setState(() => _hasScanned = true);
-    context.pushReplacement('/upload/$shopId');
+
+    try {
+      // First try to look up by uniqueShopCode
+      final query = await FirebaseFirestore.instance
+          .collection('shops')
+          .where('uniqueShopCode', isEqualTo: scannedId)
+          .limit(1)
+          .get();
+
+      if (query.docs.isNotEmpty) {
+        final actualShopId = query.docs.first.id;
+        if (mounted) context.pushReplacement('/upload/$actualShopId');
+        return;
+      }
+
+      // If not found, try as direct document ID
+      final doc = await FirebaseFirestore.instance
+          .collection('shops')
+          .doc(scannedId)
+          .get();
+
+      if (doc.exists) {
+        if (mounted) context.pushReplacement('/upload/$scannedId');
+        return;
+      }
+
+      // Not found
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid QR Code. Shop not found.')),
+        );
+        // Allow scanning again
+        setState(() => _hasScanned = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error resolving QR code: $e')),
+        );
+        setState(() => _hasScanned = false);
+      }
+    }
   }
 
   @override

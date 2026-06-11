@@ -38,6 +38,7 @@ class PrintJobModel {
   final String userId;
   final String shopId;
   final String? shopName;
+  final String? orderId;
   final String? fileUrl;
   final String fileName;
   final String fileType; // 'pdf' or 'image'
@@ -76,6 +77,7 @@ class PrintJobModel {
     required this.userId,
     required this.shopId,
     this.shopName,
+    this.orderId,
     this.fileUrl,
     required this.fileName,
     required this.fileType,
@@ -113,6 +115,7 @@ class PrintJobModel {
       userId: map['userId'] as String,
       shopId: map['shopId'] as String,
       shopName: map['shopName'] as String?,
+      orderId: map['orderId'] as String?,
       fileUrl: map['fileUrl'] as String?,
       fileName: map['fileName'] as String,
       fileType: map['fileType'] as String? ?? 'pdf',
@@ -154,6 +157,7 @@ class PrintJobModel {
       'userId': userId,
       'shopId': shopId,
       'shopName': shopName,
+      'orderId': orderId,
       'fileUrl': fileUrl,
       'fileName': fileName,
       'fileType': fileType,
@@ -197,6 +201,7 @@ class PrintJobModel {
     String? userId,
     String? shopId,
     String? shopName,
+    String? orderId,
     String? fileUrl,
     String? fileName,
     String? fileType,
@@ -225,6 +230,7 @@ class PrintJobModel {
       userId: userId ?? this.userId,
       shopId: shopId ?? this.shopId,
       shopName: shopName ?? this.shopName,
+      orderId: orderId ?? this.orderId,
       fileUrl: fileUrl ?? this.fileUrl,
       fileName: fileName ?? this.fileName,
       fileType: fileType ?? this.fileType,
